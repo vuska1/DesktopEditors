@@ -8,6 +8,8 @@ on:
 env:
   REGISTRY: ghcr.io/euro-office
   CACHE_IMAGE_NAME: desktopeditors-build-cache
+  # Fork (TUHH): Cache-Schreiben ins eigene ghcr, Lesen weiter von Euro-Office
+  CACHE_REGISTRY: ghcr.io/${{ github.repository_owner }}
   PRODUCT_VERSION: 9.3.1
   BUILD_NUMBER: dev.1
   BUILD_ROOT: /package
@@ -54,14 +56,8 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
 
       - name: Debug workspace
         run: |
@@ -134,19 +130,19 @@ jobs:
           push: false
           set: |
             core-wasm.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-wasm-buildcache
-            core-wasm.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-wasm-buildcache,mode=max
+            core-wasm.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-wasm-buildcache,mode=max
             core-wasm.tags=
             sdkjs-desktop.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}sdkjs-desktop-buildcache
-            sdkjs-desktop.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}sdkjs-desktop-buildcache,mode=max
+            sdkjs-desktop.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}sdkjs-desktop-buildcache,mode=max
             sdkjs-desktop.tags=
             desktop-js.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-js-buildcache
-            desktop-js.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-js-buildcache,mode=max
+            desktop-js.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-js-buildcache,mode=max
             desktop-js.tags=
             web-apps.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}web-apps-buildcache
-            web-apps.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}web-apps-buildcache,mode=max
+            web-apps.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}web-apps-buildcache,mode=max
             web-apps.tags=
             desktop-common.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-common-buildcache
-            desktop-common.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-common-buildcache,mode=max
+            desktop-common.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-common-buildcache,mode=max
             desktop-common.tags=${{format('{0}/{1}:{2}', env.REGISTRY, matrix.brand.image_name, steps.meta.outputs.sha_short)}}
             desktop-common.output=type=tar,dest=./common.tar
         env:
@@ -179,7 +175,7 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
  
       # windows-2022 ships VS2022 but not always the ARM64 *target* tools.
       # clang-cl (V8) links arm64 against the arm64 Windows SDK libs;
@@ -225,7 +221,7 @@ jobs:
 
   build-windows:
     runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || 'windows-2022' }}
-    needs: [build-common, crosscompile-3rdparty-arm64]
+    needs: build-common
     strategy:
       fail-fast: false
       matrix:
@@ -245,14 +241,8 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -366,14 +356,8 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -458,14 +442,14 @@ jobs:
           push: false
           set: |
             core-base.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-base-buildcache
-            core-base.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-base-buildcache,mode=max
+            core-base.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-base-buildcache,mode=max
             core-base.tags=
             desktop-linux.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-linux-buildcache
-            desktop-linux.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-linux-buildcache,mode=max
+            desktop-linux.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-linux-buildcache,mode=max
             desktop-linux.tags=
             desktop-linux.contexts.desktop-common=./common
             packages.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}packages-buildcache
-            packages.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}packages-buildcache,mode=max
+            packages.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ steps.meta.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}packages-buildcache,mode=max
             packages.tags=
         env:
           GIT_COMMIT: ${{ steps.meta.outputs.sha_short }}
