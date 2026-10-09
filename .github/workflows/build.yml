@@ -18,6 +18,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io/euro-office
+  # Fork (TUHH): Cache-Schreiben ins eigene ghcr, Lesen weiter von Euro-Office
+  CACHE_REGISTRY: ghcr.io/${{ github.repository_owner }}
   CACHE_IMAGE_NAME: desktopeditors-build-cache
   PRODUCT_VERSION: 9.3.1
   BUILD_NUMBER: dev.1
@@ -61,7 +63,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: false
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       - name: Compute version
         id: meta
@@ -132,10 +134,6 @@ jobs:
             extra_bake_files: ""
             cache_prefix: ""
             expect_assets: false          # dummy target: empty overlay by design
-          - name: nextcloud-office
-            extra_bake_files: "./brands/nextcloud-office-brand/brand-desktop.hcl"
-            cache_prefix: "nextcloud-office-"
-            expect_assets: true
     steps:
       - name: Checkout DesktopEditors repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -144,14 +142,7 @@ jobs:
           # The render container's context is the brand repo, not the monorepo,
           # so the multi-GB submodules are pure cost here.
           submodules: false
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
-
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
@@ -177,7 +168,7 @@ jobs:
             *.context=..
             brand-icons.tags=
             brand-icons.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}brand-icons-buildcache
-            brand-icons.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}brand-icons-buildcache,mode=max
+            brand-icons.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}brand-icons-buildcache,mode=max
             brand-icons.output=type=local,dest=./brand-assets
 
       - name: Pack the overlay tree
@@ -229,31 +220,13 @@ jobs:
             extra_bake_files_common: ""
             extra_targets_common: ""
             cache_prefix: ""
-          - name: nextcloud-office
-            image_name: no-desktop-common
-            company_name: Nextcloud Office
-            product_name: Nextcloud Office
-            # Relative to the bake context (`..` from workdir ./build) = repo root.
-            branding_dir: "./build/brands/nextcloud-office-brand"
-            # Relative to workdir ./build. Leave empty until the brand repo
-            # ships a desktop bake file.
-            extra_bake_files_common: ""
-            extra_targets_common: ""
-            cache_prefix: "nextcloud-office-"
     steps:
       - name: Checkout fork repository (with submodules)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
-
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       - name: Debug workspace
         run: |
@@ -322,19 +295,19 @@ jobs:
           set: |
             *.context=..
             core-wasm.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-wasm-buildcache
-            core-wasm.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-wasm-buildcache,mode=max
+            core-wasm.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-wasm-buildcache,mode=max
             core-wasm.tags=
             sdkjs-desktop.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}sdkjs-desktop-buildcache
-            sdkjs-desktop.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}sdkjs-desktop-buildcache,mode=max
+            sdkjs-desktop.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}sdkjs-desktop-buildcache,mode=max
             sdkjs-desktop.tags=
             desktop-js.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-js-buildcache
-            desktop-js.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-js-buildcache,mode=max
+            desktop-js.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-js-buildcache,mode=max
             desktop-js.tags=
             web-apps.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}web-apps-buildcache
-            web-apps.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}web-apps-buildcache,mode=max
+            web-apps.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}web-apps-buildcache,mode=max
             web-apps.tags=
             desktop-common.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-common-buildcache
-            desktop-common.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-common-buildcache,mode=max
+            desktop-common.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-common-buildcache,mode=max
             desktop-common.tags=${{ format('{0}/{1}:{2}', env.REGISTRY, matrix.brand.image_name, needs.version.outputs.sha_short) }}
             desktop-common.output=type=tar,dest=./common.tar
         env:
@@ -377,7 +350,7 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       # windows-2022 ships VS2022 but not always the ARM64 *target* tools.
       # clang-cl (V8) links arm64 against the arm64 Windows SDK libs;
@@ -437,12 +410,6 @@ jobs:
             product_name: Euro-Office
             # Unsigned, packaged here and published to the GitHub release.
             sign: false
-          - name: nextcloud-office
-            company_name: Nextcloud Office
-            product_name: Nextcloud Office
-            # Only a signing bundle here; signed + packaged on the signing
-            # server (build/windows/sign-package.ps1).
-            sign: true
     env:
       PYTHONUTF8: "1"
       NEXTCLOUD_USER: ${{ secrets.NEXTCLOUD_USER }}
@@ -455,14 +422,7 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
-
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -582,31 +542,13 @@ jobs:
             extra_bake_files_linux: ""
             extra_targets_linux: ""
             cache_prefix: ""
-          - name: nextcloud-office
-            company_name: Nextcloud Office
-            product_name: Nextcloud Office
-            # Bake context for ./build/linux targets is `../..` = repo root,
-            # so this is the same string as in build-common.
-            branding_dir: "./build/brands/nextcloud-office-brand"
-            # Relative to workdir ./build/linux, i.e. one level deeper than
-            # build-common: "../brands/nextcloud-office-brand/<file>.hcl"
-            extra_bake_files_linux: ""
-            extra_targets_linux: ""
-            cache_prefix: "nextcloud-office-"
     steps:
       - name: Checkout fork repository (with submodules)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
-
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -682,14 +624,14 @@ jobs:
           set: |
             *.context=../..
             core-base.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-base-buildcache
-            core-base.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-base-buildcache,mode=max
+            core-base.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}core-base-buildcache,mode=max
             core-base.tags=
             desktop-linux.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-linux-buildcache
-            desktop-linux.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-linux-buildcache,mode=max
+            desktop-linux.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}desktop-linux-buildcache,mode=max
             desktop-linux.tags=
             desktop-linux.contexts.desktop-common=./common
             packages.cache-from=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}packages-buildcache
-            packages.cache-to=type=registry,ref=${{ env.REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}packages-buildcache,mode=max
+            packages.cache-to=type=registry,ref=${{ env.CACHE_REGISTRY }}/${{ env.CACHE_IMAGE_NAME }}:${{ needs.version.outputs.ref_name }}-${{ matrix.brand.cache_prefix }}packages-buildcache,mode=max
             packages.tags=
         env:
           GIT_COMMIT: ${{ needs.version.outputs.sha_short }}
@@ -757,17 +699,6 @@ jobs:
             app_icon_svg: ""
             tab_icon_light_svg: ""
             tab_icon_dark_svg: ""
-          - name: nextcloud-office
-            xcode_project: desktop-apps/macos/Euro-Office.xcodeproj
-            xcode_scheme: Euro-Office-arm
-            app_bundle: Nextcloud Office.app
-            dmg_name: Nextcloud-Office-macos-arm64.dmg
-            company_name: Nextcloud Office
-            product_name: Nextcloud Office
-            bundle_id: asc.nextcloud-office.Nextcloud-Office
-            app_icon_svg: build/brands/nextcloud-office-brand/svg/logo-light.svg
-            tab_icon_light_svg: build/brands/nextcloud-office-brand/svg/logo-light.svg
-            tab_icon_dark_svg: build/brands/nextcloud-office-brand/svg/logo-dark.svg
     env:
       REPO: ${{ github.workspace }}
       EO_3RDPARTY: /Users/runner/eo-3rdparty
@@ -780,14 +711,7 @@ jobs:
         with:
           path: .
           submodules: recursive
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
-
-      - name: Checkout nextcloud-office-brand repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: Euro-Office/nextcloud-office-brand
-          path: build/brands/nextcloud-office-brand
-          token: ${{ secrets.EURO_OFFICE_MIRROR_TOKEN }}
+          token: ${{ github.token }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -887,150 +811,4 @@ jobs:
           name: macos-packages-${{ matrix.brand.name }}-arm64
           path: build/macos/out/${{ matrix.brand.dmg_name }}
 
-  # ─────────────────────────────────────────────────────────────
-  # Classify the tag: v9.3.4-1 is stable; anything else
-  # (v9.3.4-beta.1, v9.3.4-rc.1, v9.3.1-dev.1, ...) is a prerelease.
-  # ─────────────────────────────────────────────────────────────
-  release-info:
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    outputs:
-      stable: ${{ steps.check.outputs.stable }}
-    steps:
-      - id: check
-        run: |
-          if [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
-            echo "stable=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "stable=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  # ─────────────────────────────────────────────────────────────
-  # PUBLISH - euro-office to GitHub Release (this repository)
-  # ─────────────────────────────────────────────────────────────
-  publish-release:
-    runs-on: ubuntu-latest
-    needs: [release-info, build-linux, build-windows, build-macos]
-    if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: '*-packages-euro-office-*'
-          path: dist
-          merge-multiple: true
-
-      - run: find dist -type f -printf '%p  %s bytes\n' | sort
-
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          files: dist/**/*
-          prerelease: ${{ needs.release-info.outputs.stable != 'true' }}
-          fail_on_unmatched_files: true
-
-  # ─────────────────────────────────────────────────────────────
-  # PUBLISH - nextcloud-office to nextcloud-releases/Office-DesktopEditors
-  #
-  # GITHUB_TOKEN can't write to another repository, so we mint a
-  # short-lived token from a GitHub App installed on nextcloud-releases.
-  # ─────────────────────────────────────────────────────────────
-  publish-nextcloud-release:
-    runs-on: ubuntu-latest
-    needs: [release-info, build-linux, build-windows, build-macos]
-    if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: '*-packages-nextcloud-office-*'
-          path: dist
-          merge-multiple: true
-
-      - run: find dist -type f -printf '%p  %s bytes\n' | sort
-
-      - name: Get token for nextcloud-releases
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.NEXTCLOUD_RELEASES_APP_ID }}
-          private-key: ${{ secrets.NEXTCLOUD_RELEASES_APP_KEY }}
-          owner: nextcloud-releases
-          repositories: Office-DesktopEditors
-
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          repository: nextcloud-releases/Office-DesktopEditors
-          token: ${{ steps.app-token.outputs.token }}
-          tag_name: ${{ github.ref_name }}
-          name: Nextcloud Office Desktop ${{ github.ref_name }}
-          body: |
-            Built from ${{ github.repository }}@${{ github.sha }}
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          prerelease: ${{ needs.release-info.outputs.stable != 'true' }}
-          files: dist/**/*
-          fail_on_unmatched_files: true
-
-  # ─────────────────────────────────────────────────────────────
-  # PUBLISH - nextcloud-office to the versioned directory on the server
-  #
-  # Lands under office/desktopeditors/<version>/<build>/, mirroring
-  # office/docserver/<version>/. Independent of the APT/DNF archive so
-  # beta/dev builds stay downloadable.
-  # ─────────────────────────────────────────────────────────────
-  publish-files:
-    runs-on: ubuntu-latest
-    needs: [version, build-linux, build-windows, build-macos]
-    if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: '*-packages-nextcloud-office-*'
-          path: dist
-          merge-multiple: true
-
-      - name: Upload via SSH
-        env:
-          SSH_KEY: ${{ secrets.NEXTCLOUD_SSH_KEY }}
-          SSH_HOST: ${{ secrets.NEXTCLOUD_SSH_HOST }}
-          SSH_USER: ${{ secrets.NEXTCLOUD_SSH_USER }}
-          SSH_PORT: ${{ secrets.NEXTCLOUD_SSH_PORT || 22 }}
-          REMOTE_BASE: ${{ secrets.NEXTCLOUD_SSH_REMOTE_PATH }}
-          PRODUCT_VERSION: ${{ needs.version.outputs.product_version }}
-          BUILD_NUMBER: ${{ needs.version.outputs.build_number }}
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-
-          TARGET="$REMOTE_BASE/desktopeditors/$PRODUCT_VERSION/$BUILD_NUMBER"
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p '$TARGET'"
-          scp -i ~/.ssh/id_deploy -P "$SSH_PORT" -r dist/. \
-            "$SSH_USER@$SSH_HOST:$TARGET/"
-
-  # ─────────────────────────────────────────────────────────────
-  # PUBLISH - nextcloud-office to the shared APT/DNF archive
-  #
-  # Stable tags only (v9.3.4-1). The logic lives once in the
-  # DocumentServer repo and is called from here.
-  #
-  # A job calling a reusable workflow caps the called workflow's token
-  # permissions, so this block must be a superset of what the called
-  # workflow's jobs request (its 'publish' job wants 'actions: read').
-  # ─────────────────────────────────────────────────────────────
-  publish-repo:
-    needs: [release-info, build-linux]
-    if: needs.release-info.outputs.stable == 'true'
-    permissions:
-      contents: read
-      actions: read
-    uses: Euro-Office/DocumentServer/.github/workflows/publish-repo.yml@feat/pkgrepo ##TODO: change to main
-    with:
-      product: desktopeditors
-      artifact_pattern: 'linux-packages-nextcloud-office-*'
-    secrets: inherit
+  # Fork (TUHH): release-info und publish-* entfernt (brauchen Euro-Office-Secrets/SSH), Pakete nur als Artifacts.
